@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<HTML>
+	<HEAD>
+		<TITLE>Fediverse魚拓</TITLE>
+
+		<LINK REL="stylesheet" HREF="https://cdn.rumia.me/CSS/font.css">
+		<LINK REL="stylesheet" HREF="https://cdn.rumia.me/CSS/reset.css">
+		<LINK REL="stylesheet" HREF="https://cdn.rumia.me/CSS/DEFAULT.css">
+	</HEAD>
+	<BODY>
+		<INPUT TYPE="TEXT" ID="REQUEST_INPUT"><BUTTON>魚拓</BUTTON>
+	</BODY>
+	
+	<SCRIPT>
+		async function search(e) {
+			e.target.setAttribute("disabled", "");
+
+			let ajax = await fetch("/api/Archive?REQUEST=" + document.getElementById("REQUEST_INPUT").value);
+			const result = await ajax.json();
+			if (result.STATUS) {
+				e.target.removeAttribute("disabled");
+
+				console.log(result);
+			} else {
+				//エラー
+			}
+		}
+	</SCRIPT>
+</HTML>
