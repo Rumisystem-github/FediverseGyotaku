@@ -4,8 +4,6 @@ import java.net.URL;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -165,12 +163,23 @@ public class Archiver {
 				return new String[] {ID, check.get(0).getData("ID").asString()};
 			}
 
+			String IconURL = "";
+			String HeaderURL = "";
+
+			if (body.get("icon") != null) {
+				IconURL = body.get("icon").get("url").asText();
+			}
+
+			if (body.get("image") != null) {
+				HeaderURL = body.get("image").get("url").asText();
+			}
+
 			String ProfileID = String.valueOf(SnowFlake.GEN());
 			SQL.UP_RUN("""
 				INSERT
-					INTO `FG_USER_PROFILE` (`ID`, `USER`, `INSTANCE_DATA`, `PREFERRED_UID`, `NAME`, `DESCRIPTION`, `DATE`, `DUMP`)
+					INTO `FG_USER_PROFILE` (`ID`, `USER`, `INSTANCE_DATA`, `PREFERRED_UID`, `NAME`, `DESCRIPTION`, `ICON_ORIGINAL`, `ICON_ARCHIVE`, `HEADER_ORIGINAL`, `HEADER_ARCHIVE`, `DATE`, `DUMP`)
 				VALUES
-					(?, ?, ?, ?, ?, ?, NOW(), ?)
+					(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
 			""", new Object[] {
 				ProfileID,
 				ID,
@@ -178,6 +187,8 @@ public class Archiver {
 				body.get("preferredUsername").asText(),
 				body.get("name").asText(),
 				body.get("summary").asText(),
+				IconURL, IconURL,
+				HeaderURL, HeaderURL,
 				raw_body
 			});
 

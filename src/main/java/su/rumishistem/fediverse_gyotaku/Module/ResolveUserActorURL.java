@@ -17,7 +17,7 @@ public class ResolveUserActorURL {
 
 	public ResolveUserActorURL(String input) {
 		try {
-			if (input.matches(".*@.+@.+") || input.matches(".+@.+")) {
+			if (input.matches("^.*@.+@.+$") || input.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
 				//メアドみたいなノリで書かれてたらActorのURLを撮ってくる
 				Matcher mtc = Pattern.compile("^@?([^@]+)@([^@]+)$").matcher(input);
 				if (mtc.find()) {

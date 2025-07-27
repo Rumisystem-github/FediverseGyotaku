@@ -20,6 +20,8 @@ public class Route {
 	public static void init(SmartHTTP SH) {
 		SH.SetRoute("/api/Search", Method.GET, new Search());
 
+		SH.SetRoute("/api/Archive", Method.POST, new CreateArchive());
+
 		SH.SetRoute("/api/User", Method.GET, new GetUserArchiveList());
 		SH.SetRoute("/api/UserArchive", Method.GET, new GetUserArchive());
 

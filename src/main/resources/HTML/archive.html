@@ -8,14 +8,38 @@
 		<LINK REL="stylesheet" HREF="https://cdn.rumia.me/CSS/DEFAULT.css">
 	</HEAD>
 	<BODY>
-		<INPUT TYPE="TEXT" ID="REQUEST_INPUT"><BUTTON>魚拓</BUTTON>
+		<INPUT TYPE="TEXT" ID="REQUEST_INPUT"><BUTTON onclick="archive(event);">魚拓</BUTTON>
 	</BODY>
 	
+	<SCRIPT SRC="https://cdn.rumia.me/LIB/COOKIE.js?V=LATEST" defer></SCRIPT>
+	<SCRIPT SRC="https://cdn.rumia.me/LIB/Login.js?V=LATEST" defer></SCRIPT>
 	<SCRIPT>
-		async function search(e) {
+		let SESSION = null;
+		let AccountData = null;
+
+		window.addEventListener("load", async (e)=>{
+			SESSION = ReadCOOKIE().SESSION;
+			if (SESSION !== null) {
+				//ログインする
+				AccountData = await LOGIN(SESSION);
+				if (AccountData !== false) {
+					return;
+				} else {
+					window.location.href = "/";
+					return;
+				}
+			}
+		});
+
+		async function archive(e) {
 			e.target.setAttribute("disabled", "");
 
-			let ajax = await fetch("/api/Archive?REQUEST=" + document.getElementById("REQUEST_INPUT").value);
+			let ajax = await fetch("/api/Archive?REQUEST=" + document.getElementById("REQUEST_INPUT").value, {
+				method: "POST",
+				headers: {
+					"TOKEN": SESSION
+				}
+			});
 			const result = await ajax.json();
 			if (result.STATUS) {
 				e.target.removeAttribute("disabled");
