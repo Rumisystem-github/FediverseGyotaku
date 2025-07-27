@@ -1,13 +1,60 @@
 <!DOCTYPE html>
 <HTML>
 	<HEAD>
-		<TITLE>Fediverse魚拓</TITLE>
+		<TITLE>ユーザー</TITLE>
 
 		<LINK REL="stylesheet" HREF="https://cdn.rumia.me/CSS/font.css">
 		<LINK REL="stylesheet" HREF="https://cdn.rumia.me/CSS/reset.css">
 		<LINK REL="stylesheet" HREF="https://cdn.rumia.me/CSS/DEFAULT.css">
+
+		<LINK REL="stylesheet" HREF="./STYLE/Main.css">
+		<LINK REL="stylesheet" HREF="./STYLE/User.css">
 	</HEAD>
 	<BODY>
-		
+		<TABLE CLASS="ARCHIVE_LIST" ID="ARCHIVE_LIST">
+			<TR>
+				<TH COLSPAN="3">アーカイブ一覧</TH>
+			</TR>
+		</TABLE>
 	</BODY>
+
+	<SCRIPT SRC="https://cdn.rumia.me/LIB/htmlspecialchars.js?V=LATEST"></SCRIPT>
+	<SCRIPT>
+		let EL = {
+			ARCHIVE_LIST: document.getElementById("ARCHIVE_LIST")
+		};
+
+		window.addEventListener("load", async (e)=>{
+			const url_param = new URLSearchParams(window.location.search);
+			if (url_param.get("ID") == null) return;
+			const ID = url_param.get("ID");
+
+			let ajax = await fetch("/api/User?ID=" + ID);
+			const result = await ajax.json();
+			if (result.STATUS) {
+				for (let I = 0; I < result.LIST.length; I++) {
+					const row = result.LIST[I];
+					EL.ARCHIVE_LIST.querySelector("tbody").innerHTML += `
+						<TR>
+							<TD CLASS="ICON">
+								<IMG SRC="${htmlspecialchars(row.ICON_ORIGINAL)}">
+							</TD>
+							<TD CLASS="PREFERRED_UID">
+								<A HREF="user_archive?ARCHIVE=${row.ID}">
+								${htmlspecialchars(row.PREFERRED_UID)}
+								</A>
+							</TD>
+							<TD CLASS="NAME">
+								<INPUT readonly VALUE="${htmlspecialchars(row.NAME)}">
+							</TD>
+							<TD CLASS="DESC">
+								<TEXTAREA readonly>${htmlspecialchars(row.DESCRIPTION)}</TEXTAREA>
+							</TD>
+							<TD CLASS="DATE">${row.DATE}</TD>
+						</TR>
+					`;
+				}
+			}
+		});
+	</SCRIPT>
 </HTML>

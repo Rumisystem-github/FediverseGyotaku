@@ -1,0 +1,49 @@
+:root{
+	--ICON_SIZE: 100px;
+}
+
+.USER > .HEADER{
+	background-attachment: fixed;
+	background-size: cover;
+	background-clip: content-box;
+
+	height: 200px;
+}
+
+.USER > .INFO{
+	margin-top: calc((var(--ICON_SIZE) / 2) * -1);
+
+	width: 100vw;
+	height: fit-content;
+
+	padding: 10px;
+}
+
+.USER > .INFO > .ICON_NAME > img{
+	width: var(--ICON_SIZE);
+	height: var(--ICON_SIZE);
+
+	border-radius: var(--ICON_SIZE);
+
+	vertical-align: middle;
+
+	padding: 5px;
+
+	background-color: white;
+}
+
+.USER > .INFO > .ICON_NAME > span{
+	vertical-align: middle;
+
+	font-size: 30px;
+
+	background-color: white;
+}
+
+.USER > .INFO > .UID{
+	margin-left: 100px;
+}
+
+.USER > .INFO > .DESCRIPTION{
+	margin-left: 100px;
+}
