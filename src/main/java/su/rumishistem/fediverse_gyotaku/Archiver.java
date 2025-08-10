@@ -88,12 +88,25 @@ public class Archiver {
 			String UserID[] = ArchiveUserAndGetID(ActorURL, Host, InstanceID, InstanceDataID);
 			if (UserID == null) return null;
 
+			String ReplyID = null;
+			String QuoteID = null;
+
+			//リプライチェック
+			if (body.get("inReplyTo") != null && !body.get("inReplyTo").isNull()) {
+				ReplyID = ArchivePostAndGetID(body.get("inReplyTo").asText(), InstanceID, InstanceDataID);
+			}
+
+			//引用チェック
+			if (body.get("quoteUrl") != null && !body.get("quoteUrl").isNull()) {
+				QuoteID = ArchivePostAndGetID(body.get("quoteUrl").asText(), InstanceID, InstanceDataID);
+			}
+
 			String ID = String.valueOf(SnowFlake.GEN());
 			SQL.UP_RUN("""
 				INSERT
-					INTO `FG_POST` (`ID`, `USER_PROFILE`, `INSTANCE_DATA`, `POST_ID`, `CONTENTS`, `PUBLISHED`, `REPLY`, `DATE`, `DUMP`)
+					INTO `FG_POST` (`ID`, `USER_PROFILE`, `INSTANCE_DATA`, `POST_ID`, `CONTENTS`, `PUBLISHED`, `REPLY`, `QUOTE`, `DATE`, `DUMP`)
 				VALUES
-					(?, ?, ?, ?, ?, ?, ?, NOW(), ?)
+					(?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
 			""", new Object[] {
 				ID,
 				UserID[1],
@@ -101,7 +114,8 @@ public class Archiver {
 				body.get("id").asText(),
 				body.get("content").asText(),
 				ZonedDateTime.parse(body.get("published").asText()).withZoneSameInstant(ZoneId.of("Asia/Tokyo")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-				null,
+				ReplyID,
+				QuoteID,
 				raw_body
 			});
 
@@ -166,11 +180,12 @@ public class Archiver {
 			String IconURL = "";
 			String HeaderURL = "";
 
-			if (body.get("icon") != null) {
+			if (body.get("icon") != null && !body.get("icon").isNull()) {
 				IconURL = body.get("icon").get("url").asText();
 			}
 
-			if (body.get("image") != null) {
+			System.out.println(body);
+			if (body.get("image") != null && !body.get("image").isNull()) {
 				HeaderURL = body.get("image").get("url").asText();
 			}
 

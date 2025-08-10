@@ -45,6 +45,8 @@ public class Main {
 			ConfigData.get("SQL").getData("PASS").asString()
 		);
 
+		Archiver.archive("https://fedi.rumi-room.net/notes/ab8uvg3emfmq03jy");
+
 		SmartHTTP SH = new SmartHTTP(ConfigData.get("HTTP").getData("PORT").asInt());
 		Route.init(SH);
 
