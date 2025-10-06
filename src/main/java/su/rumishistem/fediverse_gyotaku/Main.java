@@ -4,17 +4,10 @@ import static su.rumishistem.rumi_java_lib.LOG_PRINT.Main.LOG;
 
 import java.io.File;
 
-import su.rumishistem.fediverse_gyotaku.API.Route;
 import su.rumishistem.rumi_java_lib.ArrayNode;
 import su.rumishistem.rumi_java_lib.CONFIG;
 import su.rumishistem.rumi_java_lib.SQL;
 import su.rumishistem.rumi_java_lib.LOG_PRINT.LOG_TYPE;
-import su.rumishistem.rumi_java_lib.RESOURCE.RESOURCE_MANAGER;
-import su.rumishistem.rumi_java_lib.SmartHTTP.HTTP_REQUEST;
-import su.rumishistem.rumi_java_lib.SmartHTTP.HTTP_RESULT;
-import su.rumishistem.rumi_java_lib.SmartHTTP.SmartHTTP;
-import su.rumishistem.rumi_java_lib.SmartHTTP.Type.EndpointFunction;
-import su.rumishistem.rumi_java_lib.SmartHTTP.Type.EndpointEntrie.Method;
 
 public class Main {
 	public static final String ActivityJsonMimetype = "application/activity+json";
@@ -44,46 +37,5 @@ public class Main {
 			ConfigData.get("SQL").getData("USER").asString(),
 			ConfigData.get("SQL").getData("PASS").asString()
 		);
-
-		Archiver.archive("https://fedi.rumi-room.net/notes/ab8uvg3emfmq03jy");
-
-		SmartHTTP SH = new SmartHTTP(ConfigData.get("HTTP").getData("PORT").asInt());
-		Route.init(SH);
-
-		//WebUI
-		SH.SetResourceDir("/webui/STYLE/", "/HTML/STYLE/", Main.class);
-		SH.SetResourceDir("/webui/SCRIPT/", "/HTML/SCRIPT/", Main.class);
-		SH.SetRoute("/webui/", Method.GET, new EndpointFunction() {
-			@Override
-			public HTTP_RESULT Run(HTTP_REQUEST r) throws Exception {
-				return new HTTP_RESULT(200, new RESOURCE_MANAGER(Main.class).getResourceData("/HTML/index.html"), HTMLMimetype);
-			}
-		});
-		SH.SetRoute("/webui/archive", Method.GET, new EndpointFunction() {
-			@Override
-			public HTTP_RESULT Run(HTTP_REQUEST r) throws Exception {
-				return new HTTP_RESULT(200, new RESOURCE_MANAGER(Main.class).getResourceData("/HTML/archive.html"), HTMLMimetype);
-			}
-		});
-		SH.SetRoute("/webui/user", Method.GET, new EndpointFunction() {
-			@Override
-			public HTTP_RESULT Run(HTTP_REQUEST r) throws Exception {
-				return new HTTP_RESULT(200, new RESOURCE_MANAGER(Main.class).getResourceData("/HTML/user.html"), HTMLMimetype);
-			}
-		});
-		SH.SetRoute("/webui/user_archive", Method.GET, new EndpointFunction() {
-			@Override
-			public HTTP_RESULT Run(HTTP_REQUEST r) throws Exception {
-				return new HTTP_RESULT(200, new RESOURCE_MANAGER(Main.class).getResourceData("/HTML/user_archive.html"), HTMLMimetype);
-			}
-		});
-		SH.SetRoute("/webui/instance_archive", Method.GET, new EndpointFunction() {
-			@Override
-			public HTTP_RESULT Run(HTTP_REQUEST r) throws Exception {
-				return new HTTP_RESULT(200, new RESOURCE_MANAGER(Main.class).getResourceData("/HTML/instance_archive.html"), HTMLMimetype);
-			}
-		});
-
-		SH.Start();
 	}
 }
