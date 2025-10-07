@@ -11,10 +11,6 @@ import su.rumishistem.rumi_java_lib.SQL;
 import su.rumishistem.rumi_java_lib.LOG_PRINT.LOG_TYPE;
 
 public class Main {
-	public static final String ActivityJsonMimetype = "application/activity+json";
-	public static final String HTMLMimetype = "text/html; charset=UTF-8";
-	public static final String JsonMimetype = "application/json; charset=UTF-8";
-
 	public static ArrayNode ConfigData = null;
 
 	public static void main(String[] args) throws Exception {
@@ -39,6 +35,6 @@ public class Main {
 			ConfigData.get("SQL").getData("PASS").asString()
 		);
 
-		new Archiver().archive("eth.rumiserver.com", ArchiveType.Instance, "1");
+		new Archiver().archive("rumisan@eth.rumiserver.com", ArchiveType.User, "1");
 	}
 }
