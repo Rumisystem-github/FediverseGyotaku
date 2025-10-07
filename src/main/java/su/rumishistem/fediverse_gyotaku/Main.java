@@ -4,6 +4,7 @@ import static su.rumishistem.rumi_java_lib.LOG_PRINT.Main.LOG;
 
 import java.io.File;
 
+import su.rumishistem.fediverse_gyotaku.Type.ArchiveType;
 import su.rumishistem.rumi_java_lib.ArrayNode;
 import su.rumishistem.rumi_java_lib.CONFIG;
 import su.rumishistem.rumi_java_lib.SQL;
@@ -37,5 +38,7 @@ public class Main {
 			ConfigData.get("SQL").getData("USER").asString(),
 			ConfigData.get("SQL").getData("PASS").asString()
 		);
+
+		new Archiver().archive("eth.rumiserver.com", ArchiveType.Instance, "1");
 	}
 }
