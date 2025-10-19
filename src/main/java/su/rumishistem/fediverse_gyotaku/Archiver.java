@@ -1,12 +1,14 @@
 package su.rumishistem.fediverse_gyotaku;
 
 import java.io.IOException;
+import java.net.URL;
 import java.sql.SQLException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import su.rumishistem.fediverse_gyotaku.Module.GetInstanceID;
+import su.rumishistem.fediverse_gyotaku.Module.GetNoteID;
 import su.rumishistem.fediverse_gyotaku.Module.GetUserID;
 import su.rumishistem.fediverse_gyotaku.Type.ArchiveType;
 import su.rumishistem.rumi_java_lib.ArrayNode;
@@ -29,24 +31,108 @@ public class Archiver {
 			case User:
 				String name = input.split("@")[0];
 				String host = input.split("@")[1];
-				return archive_user_and_get_id(name, host, user_id);
+				String actor_url = get_user_actor_url(name, host);
+				return archive_user_and_get_id(actor_url, host, user_id);
+
+			case Post:
+				return archive_post_and_get_id(input, user_id);
 
 			default:
 				throw new RuntimeException("あ？");
 		}
 	}
 
+	private String archive_post_and_get_id(String url, String archiver_user_id) throws IOException, SQLException{
+		String host = new URL(url).getHost();
+		FETCH ajax = new FETCH(url);
+		ajax.SetHEADER("Accept", activity_json_mime);
+
+		FETCH_RESULT result = ajax.GET();
+		if (result.getStatusCode() != 200) throw new RuntimeException("200を返さなかった");
+
+		String raw_body = result.getString();
+		JsonNode body = new ObjectMapper().readTree(raw_body);
+		String hash = HASH.Gen(HASH_TYPE.MD5, raw_body.getBytes());
+		String instance_id = GetInstanceID.from_host(host);
+		String instance_archive_id = archive_instance_and_get_id(host, archiver_user_id);
+		String user_id = null;
+		String user_archive_id = archive_user_and_get_id(body.get("attributedTo").asText(), host, archiver_user_id);
+		String post_id = GetNoteID.from_remote_id(body.get("id").asText(), instance_id);
+		String reply_archive_id = null;
+		String quote_archive_id = null;
+
+		//リプライ
+		if (body.get("inReplyTo") != null && !body.get("inReplyTo").isNull()) {
+			reply_archive_id = archive_post_and_get_id(body.get("inReplyTo").asText(), archiver_user_id);
+		}
+		//引用
+		if (body.get("quoteUrl") != null && !body.get("quoteUrl").isNull()) {
+			quote_archive_id = archive_post_and_get_id(body.get("quoteUrl").asText(), archiver_user_id);
+		}
+
+		//SQLからユーザーのIDを探すよ
+		ArrayNode user_sql = SQL.RUN("SELECT U.ID FROM `FG_USER_DATA` AS D JOIN `FG_USER` AS U ON U.ID = D.USER;", new Object[] {});
+		if (user_sql.length() == 0) throw new RuntimeException("SQLエラー");
+		user_id = user_sql.get(0).getData("ID").asString();
+
+		//POSTID
+		if (post_id == null) {
+			post_id = String.valueOf(SnowFlake.GEN());
+			SQL.UP_RUN("""
+				INSERT
+					INTO `FG_POST` (`ID`, `INSTANCE`, `USER`, `REMOTE_ID`, `REGIST_DATE`, `UPDATE_DATE`)
+				VALUES
+					(?, ?, ?, ?, NOW(), NOW())
+			""", new Object[] {
+				post_id, instance_id, user_id, body.get("id").asText()
+			});
+		}
+
+		String id = String.valueOf(SnowFlake.GEN());
+		SQL.UP_RUN("""
+			INSERT
+				INTO `FG_POST_DATA` (`ID`, `ARCHIVE_USER`, `INSTANCE`, `INSTANCE_DATA`, `USER`, `USER_DATA`, `REGIST_DATE`, `HASH`, `DUMP`, `CONTENT`, `REPLY`, `QUOTE`)
+			VALUES
+				(?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)
+		""", new Object[] {
+			id, archiver_user_id,
+			instance_id, instance_archive_id,
+			user_id,
+			user_archive_id,
+			hash, raw_body,
+			body.get("content").asText(),
+			reply_archive_id, quote_archive_id
+		});
+
+		//ファイル
+		for (int i = 0; i < body.get("attachment").size(); i++) {
+			JsonNode f = body.get("attachment").get(i);
+			SQL.UP_RUN("""
+				INSERT
+					INTO `FG_POST_FILE` (`ID`, `POST_DATA`, `INDEX`, `TYPE`, `MIMETYPE`, `NAME`, `NSFW`, `ORIGINAL_URL`, `ARCHIVE_URL`)
+				VALUES
+					(?, ?, ?, ?, ?, ?, ?, ?, ?)
+			""", new Object[] {
+				String.valueOf(SnowFlake.GEN()), id, (i + 1),
+				f.get("type").asText(), f.get("mediaType").asText(), f.get("name").asText(), f.get("sensitive").asBoolean(),
+				f.get("url").asText(), f.get("url").asText()
+			});
+		}
+
+		return id;
+	}
+
 	/**
 	 * ユーザーのプロフをアーカイブし、アーカイブIDを返します。
-	 * @param name ユーザー名
+	 * @param actor_url ActorUrl
 	 * @param host ホスト
 	 * @param user_id アーカイブを実行したユーザーのID
 	 * @return アーカイブID
 	 * @throws IOException Fetcヘラー
 	 * @throws SQLException SQLエラー
 	 */
-	private String archive_user_and_get_id(String name, String host, String user_id) throws IOException, SQLException {
-		FETCH ajax = new FETCH(get_user_actor_url(name, host));
+	private String archive_user_and_get_id(String actor_url, String host, String user_id) throws IOException, SQLException {
+		FETCH ajax = new FETCH(actor_url);
 		ajax.SetHEADER("Accept", activity_json_mime);
 
 		FETCH_RESULT result = ajax.GET();
@@ -57,7 +143,7 @@ public class Archiver {
 		String hash = HASH.Gen(HASH_TYPE.MD5, raw_body.getBytes());
 		String instance_id = GetInstanceID.from_host(host);
 		String instance_archive_id = archive_instance_and_get_id(host, user_id);
-		String archive_user_id = GetUserID.from_user_name(name, host);
+		String archive_user_id = GetUserID.from_user_name(body.get("preferredUsername").asText(), host);
 
 		if (archive_user_id == null) {
 			archive_user_id = String.valueOf(SnowFlake.GEN());
@@ -68,7 +154,7 @@ public class Archiver {
 				VALUES
 					(?, ?, ?, ?, NOW(), NOW());
 				""", new Object[] {
-				archive_user_id, instance_id, name, body.get("id").asText()
+				archive_user_id, instance_id, body.get("preferredUsername").asText(), body.get("id").asText()
 			});
 		}
 
