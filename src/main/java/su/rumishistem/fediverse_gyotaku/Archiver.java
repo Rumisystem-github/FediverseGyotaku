@@ -53,8 +53,8 @@ public class Archiver {
 		String raw_body = result.getString();
 		JsonNode body = new ObjectMapper().readTree(raw_body);
 		String hash = HASH.Gen(HASH_TYPE.MD5, raw_body.getBytes());
-		String instance_id = GetInstanceID.from_host(host);
 		String instance_archive_id = archive_instance_and_get_id(host, archiver_user_id);
+		String instance_id = GetInstanceID.from_host(host);
 		String user_id = null;
 		String user_archive_id = archive_user_and_get_id(body.get("attributedTo").asText(), host, archiver_user_id);
 		String post_id = GetNoteID.from_remote_id(body.get("id").asText(), instance_id);
@@ -114,7 +114,7 @@ public class Archiver {
 					(?, ?, ?, ?, ?, ?, ?, ?, ?)
 			""", new Object[] {
 				String.valueOf(SnowFlake.GEN()), id, (i + 1),
-				f.get("type").asText(), f.get("mediaType").asText(), f.get("name").asText(), f.get("sensitive").asBoolean(),
+				f.get("type").asText(), f.get("mediaType").asText(), f.get("name").asText(), false,
 				f.get("url").asText(), f.get("url").asText()
 			});
 		}
