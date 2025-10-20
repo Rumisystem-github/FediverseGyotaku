@@ -219,7 +219,7 @@ public class Main {
 				user.put("UPDATE_DATE", ((Timestamp)sql.get(0).getData("UPDATE_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 
 				//投稿
-				ArrayNode post_sql = SQL.RUN("SELECT `ID`, `REGIST_DATE`, `CONTENT` FROM `FG_POST_DATA` ORDER BY `REGIST_DATE` DESC;", new Object[] {sql.get(0).getData("ID").asString()});
+				ArrayNode post_sql = SQL.RUN("SELECT P.ID, P.REGIST_DATE, (SELECT `CONTENT` FROM `FG_POST_DATA` WHERE `POST` = P.ID LIMIT 1) AS CONTENT FROM `FG_POST` AS P ORDER BY P.REGIST_DATE DESC;", new Object[] {sql.get(0).getData("ID").asString()});
 				List<Object> post_list = new ArrayList<Object>();
 				for (int i = 0; i < post_sql.length(); i++) {
 					LinkedHashMap<String, Object> post = new LinkedHashMap<String, Object>();
@@ -292,85 +292,104 @@ public class Main {
 		sh.SetRoute("/api/Post/Archive", Method.GET, new EndpointFunction() {
 			@Override
 			public HTTP_RESULT Run(HTTP_REQUEST r) throws Exception {
-				if (r.GetEVENT().getURI_PARAM().get("ARCHIVE") == null) {
+				if (r.GetEVENT().getURI_PARAM().get("ARCHIVE") == null && r.GetEVENT().getURI_PARAM().get("ID") != null) {
+					//アーカイブ一覧
+					ArrayNode sql = SQL.RUN("SELECT `ID`, `ARCHIVE_USER`, `REGIST_DATE` FROM `FG_POST_DATA` WHERE `POST` = ? ORDER BY `REGIST_DATE` DESC;", new Object[] {r.GetEVENT().getURI_PARAM().get("ID")});
+
+					//アーカイブ一覧
+					List<Object> archive_list = new ArrayList<Object>();
+					for (int i = 0; i < sql.length(); i++) {
+						ArrayNode row = sql.get(i);
+						LinkedHashMap<String, Object> archive = new LinkedHashMap<String, Object>();
+						archive.put("ID", row.getData("ID").asString());
+						archive.put("USER", row.getData("ARCHIVE_USER").asString());
+						archive.put("REGIST_DATE", ((Timestamp)row.getData("REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+						archive_list.add(archive);
+					}
+
+					LinkedHashMap<String, Object> return_body = new LinkedHashMap<String, Object>();
+					return_body.put("STATUS", true);
+					return_body.put("LIST", archive_list);
+					return new HTTP_RESULT(200, new ObjectMapper().writeValueAsString(return_body).getBytes(), "application/json; charset=UTF-8");
+				} else if (r.GetEVENT().getURI_PARAM().get("ARCHIVE") != null) {
+					//アーカイブ取得
+					ArrayNode sql = SQL.RUN("""
+						SELECT
+							P.ID AS POST_ID,
+							P.ARCHIVE_USER AS POST_ARCHIVE_USER,
+							P.REGIST_DATE AS POST_REGIST_DATE,
+							P.DUMP AS POST_DUMP,
+							P.CONTENT AS POST_CONTENT,
+							R.ID AS REPLY_ID,
+							R.ARCHIVE_USER AS REPLY_ARCHIVE_USER,
+							R.REGIST_DATE AS REPLY_REGIST_DATE,
+							R.DUMP AS REPLY_DUMP,
+							Q.ID AS QUOTE_ID,
+							Q.ARCHIVE_USER AS QUOTE_ARCHIVE_USER,
+							Q.REGIST_DATE AS QUOTE_REGIST_DATE,
+							Q.DUMP AS QUOTE_DUMP
+						FROM
+							`FG_POST_DATA` AS P
+						LEFT JOIN
+							`FG_POST_DATA` AS R
+								ON R.ID = P.REPLY
+						LEFT JOIN
+							`FG_POST_DATA` AS Q
+								ON Q.ID = P.QUOTE
+						WHERE
+							P.ID = ?;
+					""", new Object[] {
+						r.GetEVENT().getURI_PARAM().get("ARCHIVE")
+					});
+
+					//ある？
+					if (sql.length() == 0) {
+						return new HTTP_RESULT(404, "{\"STATUS\": false}".getBytes(), "application/json; charset=UTF-8");
+					}
+
+					LinkedHashMap<String, Object> return_body = new LinkedHashMap<String, Object>();
+					return_body.put("STATUS", true);
+					return_body.put("POST", new LinkedHashMap<String, Object>(){
+						{
+							put("ID", sql.get(0).getData("POST_ID").asString());
+							put("USER", sql.get(0).getData("POST_ARCHIVE_USER").asString());
+							put("REGIST_DATE", ((Timestamp)sql.get(0).getData("POST_REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+							put("DUMP", sql.get(0).getData("POST_DUMP").asString());
+							put("CONTENT", sql.get(0).getData("POST_CONTENT").asString());
+						}
+					});
+
+					if (sql.get(0).getData("REPLY_ID").isNull()) {
+						return_body.put("REPLY", null);
+					} else {
+						return_body.put("REPLY", new LinkedHashMap<String, Object>(){
+							{
+								put("ID", sql.get(0).getData("REPLY_ID").asString());
+								put("USER", sql.get(0).getData("REPLY_ARCHIVE_USER").asString());
+								put("REGIST_DATE", ((Timestamp)sql.get(0).getData("REPLY_REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+								put("DUMP", sql.get(0).getData("REPLY_DUMP").asString());
+								put("CONTENT", sql.get(0).getData("REPLY_CONTENT").asString());
+							}
+						});
+					}
+
+					if (sql.get(0).getData("QUOTE_ID").isNull()) {
+						return_body.put("QUOTE", null);
+					} else {
+						return_body.put("QUOTE", new LinkedHashMap<String, Object>(){
+							{
+								put("ID", sql.get(0).getData("QUOTE_ID").asString());
+								put("USER", sql.get(0).getData("QUOTE_ARCHIVE_USER").asString());
+								put("REGIST_DATE", ((Timestamp)sql.get(0).getData("QUOTE_REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+								put("DUMP", sql.get(0).getData("QUOTE_DUMP").asString());
+								put("CONTENT", sql.get(0).getData("QUOTE_CONTENT").asString());
+							}
+						});
+					}
+					return new HTTP_RESULT(200, new ObjectMapper().writeValueAsString(return_body).getBytes(), "application/json; charset=UTF-8");
+				} else {
 					return new HTTP_RESULT(400, "{\"STATUS\": false}".getBytes(), "application/json; charset=UTF-8");
 				}
-
-				//アーカイブ取得
-				ArrayNode sql = SQL.RUN("""
-					SELECT
-						P.ID AS POST_ID,
-						P.ARCHIVE_USER AS POST_ARCHIVE_USER,
-						P.REGIST_DATE AS POST_REGIST_DATE,
-						P.DUMP AS POST_DUMP,
-						P.CONTENT AS POST_CONTENT,
-						R.ID AS REPLY_ID,
-						R.ARCHIVE_USER AS REPLY_ARCHIVE_USER,
-						R.REGIST_DATE AS REPLY_REGIST_DATE,
-						R.DUMP AS REPLY_DUMP,
-						Q.ID AS QUOTE_ID,
-						Q.ARCHIVE_USER AS QUOTE_ARCHIVE_USER,
-						Q.REGIST_DATE AS QUOTE_REGIST_DATE,
-						Q.DUMP AS QUOTE_DUMP
-					FROM
-						`FG_POST_DATA` AS P
-					LEFT JOIN
-						`FG_POST_DATA` AS R
-							ON R.ID = P.REPLY
-					LEFT JOIN
-						`FG_POST_DATA` AS Q
-							ON Q.ID = P.QUOTE
-					WHERE
-						P.ID = ?;
-				""", new Object[] {
-					r.GetEVENT().getURI_PARAM().get("ARCHIVE")
-				});
-
-				//ある？
-				if (sql.length() == 0) {
-					return new HTTP_RESULT(404, "{\"STATUS\": false}".getBytes(), "application/json; charset=UTF-8");
-				}
-
-				LinkedHashMap<String, Object> return_body = new LinkedHashMap<String, Object>();
-				return_body.put("STATUS", true);
-				return_body.put("POST", new LinkedHashMap<String, Object>(){
-					{
-						put("ID", sql.get(0).getData("POST_ID").asString());
-						put("USER", sql.get(0).getData("POST_ARCHIVE_USER").asString());
-						put("REGIST_DATE", ((Timestamp)sql.get(0).getData("POST_REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-						put("DUMP", sql.get(0).getData("POST_DUMP").asString());
-						put("CONTENT", sql.get(0).getData("POST_CONTENT").asString());
-					}
-				});
-
-				if (sql.get(0).getData("REPLY_ID").isNull()) {
-					return_body.put("REPLY", null);
-				} else {
-					return_body.put("REPLY", new LinkedHashMap<String, Object>(){
-						{
-							put("ID", sql.get(0).getData("REPLY_ID").asString());
-							put("USER", sql.get(0).getData("REPLY_ARCHIVE_USER").asString());
-							put("REGIST_DATE", ((Timestamp)sql.get(0).getData("REPLY_REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-							put("DUMP", sql.get(0).getData("REPLY_DUMP").asString());
-							put("CONTENT", sql.get(0).getData("REPLY_CONTENT").asString());
-						}
-					});
-				}
-
-				if (sql.get(0).getData("QUOTE_ID").isNull()) {
-					return_body.put("QUOTE", null);
-				} else {
-					return_body.put("QUOTE", new LinkedHashMap<String, Object>(){
-						{
-							put("ID", sql.get(0).getData("QUOTE_ID").asString());
-							put("USER", sql.get(0).getData("QUOTE_ARCHIVE_USER").asString());
-							put("REGIST_DATE", ((Timestamp)sql.get(0).getData("QUOTE_REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-							put("DUMP", sql.get(0).getData("QUOTE_DUMP").asString());
-							put("CONTENT", sql.get(0).getData("QUOTE_CONTENT").asString());
-						}
-					});
-				}
-				return new HTTP_RESULT(200, new ObjectMapper().writeValueAsString(return_body).getBytes(), "application/json; charset=UTF-8");
 			}
 		});
 

@@ -91,14 +91,14 @@ public class Archiver {
 		String id = String.valueOf(SnowFlake.GEN());
 		SQL.UP_RUN("""
 			INSERT
-				INTO `FG_POST_DATA` (`ID`, `ARCHIVE_USER`, `INSTANCE`, `INSTANCE_DATA`, `USER`, `USER_DATA`, `REGIST_DATE`, `HASH`, `DUMP`, `CONTENT`, `REPLY`, `QUOTE`)
+				INTO `FG_POST_DATA` (`ID`, `ARCHIVE_USER`, `INSTANCE`, `INSTANCE_DATA`, `USER`, `USER_DATA`, `POST`, `REGIST_DATE`, `HASH`, `DUMP`, `CONTENT`, `REPLY`, `QUOTE`)
 			VALUES
-				(?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)
+				(?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)
 		""", new Object[] {
 			id, archiver_user_id,
 			instance_id, instance_archive_id,
-			user_id,
-			user_archive_id,
+			user_id, user_archive_id,
+			post_id,
 			hash, raw_body,
 			body.get("content").asText(),
 			reply_archive_id, quote_archive_id
