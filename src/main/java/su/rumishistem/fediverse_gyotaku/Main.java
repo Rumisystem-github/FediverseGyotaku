@@ -312,6 +312,7 @@ public class Main {
 							P.REGIST_DATE AS POST_REGIST_DATE,
 							P.DUMP AS POST_DUMP,
 							P.CONTENT AS POST_CONTENT,
+							P.USER_DATA AS POST_USER_DATA,
 							R.ID AS REPLY_ID,
 							R.ARCHIVE_USER AS REPLY_ARCHIVE_USER,
 							R.REGIST_DATE AS REPLY_REGIST_DATE,
@@ -339,6 +340,8 @@ public class Main {
 						return new HTTP_RESULT(404, "{\"STATUS\": false}".getBytes(), "application/json; charset=UTF-8");
 					}
 
+					ArrayNode user_sql = SQL.RUN("SELECT * FROM `FG_USER_DATA` WHERE `ID` = ?;", new Object[] {sql.get(0).getData("POST_USER_DATA").asString()});
+
 					LinkedHashMap<String, Object> return_body = new LinkedHashMap<String, Object>();
 					return_body.put("STATUS", true);
 					return_body.put("POST", new LinkedHashMap<String, Object>(){
@@ -348,6 +351,16 @@ public class Main {
 							put("REGIST_DATE", ((Timestamp)sql.get(0).getData("POST_REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 							put("DUMP", sql.get(0).getData("POST_DUMP").asString());
 							put("CONTENT", sql.get(0).getData("POST_CONTENT").asString());
+						}
+					});
+					return_body.put("USER", new LinkedHashMap<String, Object>(){
+						{
+							put("ID", user_sql.get(0).getData("ID").asString());
+							put("USER", user_sql.get(0).getData("USER").asString());
+							put("REGIST_DATE", ((Timestamp)user_sql.get(0).getData("REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+							put("NAME", user_sql.get(0).getData("NAME").asString());
+							put("ICON_ORIGINAL_URL", user_sql.get(0).getData("ICON_ORIGINAL_URL").asString());
+							put("ICON_ARCHIVE_URL", user_sql.get(0).getData("ICON_ARCHIVE_URL").asString());
 						}
 					});
 
