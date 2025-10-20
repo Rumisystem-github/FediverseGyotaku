@@ -7,20 +7,11 @@ import java.net.URL;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.function.Function;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import java.util.*;
+import com.fasterxml.jackson.databind.*;
 import su.rumishistem.fediverse_gyotaku.Module.SessionLogin;
 import su.rumishistem.fediverse_gyotaku.Type.ArchiveType;
-import su.rumishistem.rumi_java_lib.ArrayNode;
-import su.rumishistem.rumi_java_lib.CONFIG;
-import su.rumishistem.rumi_java_lib.EXCEPTION_READER;
-import su.rumishistem.rumi_java_lib.SQL;
+import su.rumishistem.rumi_java_lib.*;
 import su.rumishistem.rumi_java_lib.Ajax.Ajax;
 import su.rumishistem.rumi_java_lib.Ajax.AjaxResult;
 import su.rumishistem.rumi_java_lib.LOG_PRINT.LOG_TYPE;
@@ -220,7 +211,7 @@ public class Main {
 				user.put("UPDATE_DATE", ((Timestamp)sql.get(0).getData("UPDATE_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 
 				//投稿
-				ArrayNode post_sql = SQL.RUN("SELECT P.ID, P.REGIST_DATE, (SELECT `CONTENT` FROM `FG_POST_DATA` WHERE `POST` = P.ID LIMIT 1) AS CONTENT FROM `FG_POST` AS P ORDER BY P.REGIST_DATE DESC;", new Object[] {sql.get(0).getData("ID").asString()});
+				ArrayNode post_sql = SQL.RUN("SELECT P.ID, P.REGIST_DATE, (SELECT `CONTENT` FROM `FG_POST_DATA` WHERE `POST` = P.ID LIMIT 1) AS CONTENT FROM `FG_POST` AS P WHERE P.USER = ? ORDER BY P.REGIST_DATE DESC;", new Object[] {sql.get(0).getData("ID").asString()});
 				List<Object> post_list = new ArrayList<Object>();
 				for (int i = 0; i < post_sql.length(); i++) {
 					LinkedHashMap<String, Object> post = new LinkedHashMap<String, Object>();

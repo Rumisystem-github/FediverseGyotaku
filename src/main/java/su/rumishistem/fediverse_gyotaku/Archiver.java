@@ -71,7 +71,7 @@ public class Archiver {
 		}
 
 		//SQLからユーザーのIDを探すよ
-		ArrayNode user_sql = SQL.RUN("SELECT U.ID FROM `FG_USER_DATA` AS D JOIN `FG_USER` AS U ON U.ID = D.USER;", new Object[] {});
+		ArrayNode user_sql = SQL.RUN("SELECT U.ID FROM `FG_USER_DATA` AS D JOIN `FG_USER` AS U ON U.ID = D.USER WHERE D.ID;", new Object[] {user_archive_id});
 		if (user_sql.length() == 0) throw new RuntimeException("SQLエラー");
 		user_id = user_sql.get(0).getData("ID").asString();
 
