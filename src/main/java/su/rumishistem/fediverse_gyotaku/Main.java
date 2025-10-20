@@ -172,7 +172,7 @@ public class Main {
 					return new HTTP_RESULT(200, new ObjectMapper().writeValueAsString(return_body).getBytes(), "application/json; charset=UTF-8");
 				} else if (r.GetEVENT().getURI_PARAM().get("ARCHIVE") != null) {
 					//アーカイブ取得
-					ArrayNode sql = SQL.RUN("SELECT `ID`, `ARCHIVE_USER`, `REGIST_DATE`, `DUMP`, `INSTANCE_NAME`, `INSTANCE_DESCRIPTION`, `SOFTWARE_NAME`, `SOFTWARE_VERSION` FROM `FG_INSTANCE_DATA` WHERE `ID` = ?;", new Object[] {r.GetEVENT().getURI_PARAM().get("ARCHIVE")});
+					ArrayNode sql = SQL.RUN("SELECT D.ID, D.ARCHIVE_USER, D.REGIST_DATE, D.DUMP, D.INSTANCE_NAME, D.INSTANCE_DESCRIPTION, D.SOFTWARE_NAME, D.SOFTWARE_VERSION, I.HOST FROM `FG_INSTANCE_DATA` AS D JOIN `FG_INSTANCE` AS I ON I.ID = D.INSTANCE WHERE D.ID = ?;", new Object[] {r.GetEVENT().getURI_PARAM().get("ARCHIVE")});
 
 					//ある？
 					if (sql.length() == 0) {
@@ -184,6 +184,7 @@ public class Main {
 					archive.put("USER", sql.get(0).getData("ARCHIVE_USER").asString());
 					archive.put("REGIST_DATE", ((Timestamp)sql.get(0).getData("REGIST_DATE").asObject()).toInstant().atOffset(ZoneOffset.ofHours(9)).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 					archive.put("DUMP", sql.get(0).getData("DUMP").asString());
+					archive.put("HOST", sql.get(0).getData("HOST").asString());
 					archive.put("INSTANCE_NAME", sql.get(0).getData("INSTANCE_NAME").asString());
 					archive.put("INSTANCE_DESCRIPTION", sql.get(0).getData("INSTANCE_DESCRIPTION").asString());
 					archive.put("SOFTWARE_NAME", sql.get(0).getData("SOFTWARE_NAME").asString());
